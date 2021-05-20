@@ -6,6 +6,9 @@
 
 #define GAMA 1.8
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 // Protótipos
 void process();
 void carregaHeader(FILE* fp);
@@ -65,6 +68,16 @@ void process()
     printf("Exposure: %.3f\n", exposure);
 
     float expos = (float) pow(2.0,(double)exposure);
+
+    // inicializar o histogram com zeros
+    for(int i=0; i<HISTSIZE; i++){
+        histogram[i] = 0.0;
+    }
+
+    // inicializar o adjusted com zeros
+    for(int i=0; i<HISTSIZE; i++){
+        adjusted[i] = 0.0;
+    }
 
 
     // Leitura e Decodificação da Imagem HDF
@@ -126,34 +139,49 @@ void process()
         float auxGc = pow((double)auxGt,(1.0/GAMA));
         float auxBc = pow((double)auxBt,(1.0/GAMA));
 
-        ptr->r = (unsigned char) (auxRc * 255.0);
-        ptr->g = (unsigned char) (auxGc * 255.0);
-        ptr->b = (unsigned char) (auxBc * 255.0);
+        int auxR8 = (auxRc * 255.0);
+        int auxG8 = (auxGc * 255.0);
+        int auxB8 = (auxBc * 255.0);
 
-        ptr++;
-        ptrE++; 
+        // Histograma 
 
-
-
-        
-    }
-
-    // Histograma
-
-    // inicializar o histogram com zeros
-    for(int i=0; i<HISTSIZE; i++){
-        histogram[i] = 0.0;
-    }
-
-    ptr = image8;
-
-    for(int pos=0; pos<tamanho; pos++) {
-        int l = (int)(0.299 * (float)(ptr -> r) + 0.587 * (float)(ptr -> g) + 0.114 * (float)(ptr -> b));
+        int l = (int)(0.299 * auxR8 + 0.587 * auxG8 + 0.114 * auxB8);
 
         histogram[l] = histogram[l]+1.0;
 
+        // Níveis de Preto e Branco
+
+        //int lA = MIN(1,(MAX(0, l - minLevel))/(maxLevel - minLevel)) * 255;
+       // int lA = (MAX(0, l - minLevel))/(maxLevel - minLevel);
+       float auxlA1 = MAX(0, l - minLevel);
+       float auxlA2 = maxLevel-minLevel;
+       int lA = (int)((MIN(1,(auxlA1/auxlA2)))*255.0);
+
+        adjusted[lA] = adjusted[lA]+1.0;
+
+        auxR8 = ((auxR8*lA)/l);
+        auxG8 = ((auxG8*lA)/l);
+        auxB8 = ((auxB8*lA)/l);
+
+        if (auxR8 > 255.0){
+            auxR8 = 255.0;
+        }
+        if (auxG8 > 255.0){
+            auxG8 = 255.0;
+        }
+        if (auxB8 > 255.0){
+            auxB8 = 255.0;
+        }
+
+        ptr->r = (unsigned char) auxR8;
+        ptr->g = (unsigned char) auxG8;
+        ptr->b = (unsigned char) auxB8;
+
         ptr++;
+        ptrE++; 
+        
     }
+
 
     float maior = histogram[0];
     for(int i=1; i<HISTSIZE; i++){
@@ -165,6 +193,20 @@ void process()
     for(int i=0; i<HISTSIZE; i++){
         histogram[i] = histogram[i]/maior;
     }
+
+    float maiorA = adjusted[0];
+    for(int i=1; i<HISTSIZE; i++){
+        if (adjusted[i]>maiorA)
+            maiorA = adjusted[i];
+    }
+
+    for(int i=0; i<HISTSIZE; i++){
+        adjusted[i] = adjusted[i]/maiorA;
+    }
+
+
+
+
     
 
 
