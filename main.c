@@ -4,6 +4,8 @@
 // Rotinas para acesso da OpenGL
 #include "opengl.h"
 
+#define GAMA 1.8
+
 // Protótipos
 void process();
 void carregaHeader(FILE* fp);
@@ -54,14 +56,16 @@ void process()
 
     int tamanho = sizeX * sizeY;
 
-    // Array de floats
-    // float arrayR[tamanhoEntrada];
-    // float arrayG[tamanhoEntrada];
-    // float arrayB[tamanhoEntrada];
-
     RGBE *ptrE = image;
 
     RGB *ptr = image8;
+
+    // Aplicação do fator de Exposição
+
+    printf("Exposure: %.3f\n", exposure);
+
+    float expos = (float) pow(2.0,(double)exposure);
+
 
     // Leitura e Decodificação da Imagem HDF
 
@@ -70,42 +74,101 @@ void process()
         unsigned char m = ptrE->e;
 
         //converte m para decimal 
-        int m1 = (int)m;
+        //int m1 = (int)m;
 
         //calcula o c 
-        float c = pow(2, (m-136));
+        float c = (float) pow(2.0, (double)(m-136));
 
         //pega os valores de R G e B
         unsigned char r = ptrE -> r;
-        ptr -> r  = (unsigned char)((float)r * c);
+        float auxR  = ((float)r * c);
 
         unsigned char g = ptrE -> g;
-        ptr -> g  = (unsigned char)((float)g * c);
+        float auxG  = ((float)g * c);
 
         unsigned char b = ptrE -> b;
-        ptr -> b  = (unsigned char)((float)b * c);
+        float auxB  = ((float)b * c);
+
+
+        auxR = (auxR * expos);
+        auxG = (auxG * expos);
+        auxB = (auxB * expos);
+
+        // Tone mapping
+
+        auxR = (auxR * 0.6);
+        float auxRt = ((auxR* (2.51 * auxR + 0.03))/(auxR * (2.43 * auxR + 0.59) + 0.14));
+        if (auxRt < 0.0){
+            auxRt = 0.0;
+        } else if (auxRt > 1.0){
+            auxRt = 1.0;
+        }
+        
+        auxG = (auxG * 0.6);
+        float auxGt = ((auxG* (2.51 * auxG + 0.03))/(auxG * (2.43 * auxG + 0.59) + 0.14));
+        if (auxGt < 0.0){
+            auxGt = 0.0;
+        } else if (auxGt > 1.0){
+            auxGt = 1.0;
+        } 
+        
+        auxB = (auxB * 0.6);
+        float auxBt = ((auxB* (2.51 * auxB + 0.03))/(auxB * (2.43 * auxB + 0.59) + 0.14));
+        if (auxBt < 0.0){
+            auxBt = 0.0;
+        } else if (auxBt > 1.0){
+            auxBt = 1.0;
+        }
+
+        // Correção gama
+
+        float auxRc = pow((double)auxRt,(1.0/GAMA));
+        float auxGc = pow((double)auxGt,(1.0/GAMA));
+        float auxBc = pow((double)auxBt,(1.0/GAMA));
+
+        ptr->r = (unsigned char) (auxRc * 255.0);
+        ptr->g = (unsigned char) (auxGc * 255.0);
+        ptr->b = (unsigned char) (auxBc * 255.0);
 
         ptr++;
         ptrE++; 
 
+
+
         
     }
 
-    // Aplicação do fator de Exposição
+    // Histograma
 
-    printf("Exposure: %.3f\n", exposure);
-
-    float expos = pow(2,exposure);
+    // inicializar o histogram com zeros
+    for(int i=0; i<HISTSIZE; i++){
+        histogram[i] = 0.0;
+    }
 
     ptr = image8;
 
     for(int pos=0; pos<tamanho; pos++) {
-        ptr -> r = (unsigned char) ((float)(ptr -> r) * expos);
-        ptr -> g = (unsigned char) ((float)(ptr -> g) * expos);
-        ptr -> b = (unsigned char) ((float)(ptr -> b) * expos);
+        int l = (int)(0.299 * (float)(ptr -> r) + 0.587 * (float)(ptr -> g) + 0.114 * (float)(ptr -> b));
+
+        histogram[l] = histogram[l]+1.0;
+
         ptr++;
     }
 
+    float maior = histogram[0];
+    for(int i=1; i<HISTSIZE; i++){
+        if (histogram[i]>maior)
+            maior = histogram[i];
+    }
+
+
+    for(int i=0; i<HISTSIZE; i++){
+        histogram[i] = histogram[i]/maior;
+    }
+    
+
+
+ 
     // Dica: se você precisar de um vetor de floats para armazenar
     // a imagem convertida, etc, use este trecho
     // (não esqueça o free no final)
@@ -164,7 +227,8 @@ int main(int argc, char** argv)
     // Setas esquerda/direita: reduzir/aumentar o fator de exposição
     // A/S: reduzir/aumentar o nível mínimo (black point)
     // K/L: reduzir/aumentar o nível máximo (white point)
-    // H: exibir/ocultar o histograma
+
+    
     // ESC: finalizar o programa
    
     glutMainLoop();
