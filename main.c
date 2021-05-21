@@ -1,3 +1,7 @@
+// Gabriela Zorzo e Morgana Weber
+// Programação de Baixo Nível
+// 2021/1
+
 #include <math.h>
 #include <string.h>		// para usar strings
 
@@ -48,8 +52,6 @@ int maxLevel = 255;
 // Altura e largura
 int minhaAltura;
 int minhaLargura;
-
-
 
 
 // Função principal de processamento: ela deve chamar outras funções
@@ -151,8 +153,6 @@ void process()
 
         // Níveis de Preto e Branco
 
-        //int lA = MIN(1,(MAX(0, l - minLevel))/(maxLevel - minLevel)) * 255;
-       // int lA = (MAX(0, l - minLevel))/(maxLevel - minLevel);
        float auxlA1 = (float)(MAX(0, l - minLevel));
        float auxlA2 = (float)(maxLevel-minLevel);
        float lA = (float)((MIN(1,(auxlA1/auxlA2)))*255.0);
@@ -173,6 +173,8 @@ void process()
             auxB8 = 255.0;
         }
 
+        // Armazena na imagem de saída
+
         ptr->r = (unsigned char) auxR8;
         ptr->g = (unsigned char) auxG8;
         ptr->b = (unsigned char) auxB8;
@@ -182,6 +184,7 @@ void process()
         
     }
 
+    // Normalização do histograma
 
     float maior = histogram[0];
     for(int i=1; i<HISTSIZE; i++){
@@ -193,6 +196,8 @@ void process()
     for(int i=0; i<HISTSIZE; i++){
         histogram[i] = histogram[i]/maior;
     }
+
+    // Normalização do adjusted
 
     float maiorA = adjusted[0];
     for(int i=1; i<HISTSIZE; i++){
@@ -233,7 +238,7 @@ int main(int argc, char** argv)
     FILE* arq = fopen(argv[1], "rb");
     carregaHeader(arq);
 
-    //1. Extrai a largura e altura do header 
+    // Extrai a largura e altura do header 
     minhaLargura = header[3] + header[4]*pow(16,2) + header[5]*pow(16,1) + header[6]*pow(16,0);
     minhaAltura  = header[7] + header[8]*pow(16,2) + header[9]*pow(16,1) + header[10]*pow(16,0);
 
