@@ -139,25 +139,25 @@ void process()
         float auxGc = pow((double)auxGt,(1.0/GAMA));
         float auxBc = pow((double)auxBt,(1.0/GAMA));
 
-        int auxR8 = (auxRc * 255.0);
-        int auxG8 = (auxGc * 255.0);
-        int auxB8 = (auxBc * 255.0);
+        int auxR8 = (int)(auxRc * 255.0);
+        int auxG8 = (int)(auxGc * 255.0);
+        int auxB8 = (int)(auxBc * 255.0);
 
         // Histograma 
 
-        int l = (int)(0.299 * auxR8 + 0.587 * auxG8 + 0.114 * auxB8);
+        float l = (float)(0.299 * auxR8 + 0.587 * auxG8 + 0.114 * auxB8);
 
-        histogram[l] = histogram[l]+1.0;
+        histogram[(int)l] = histogram[(int)l]+1.0;
 
         // Níveis de Preto e Branco
 
         //int lA = MIN(1,(MAX(0, l - minLevel))/(maxLevel - minLevel)) * 255;
        // int lA = (MAX(0, l - minLevel))/(maxLevel - minLevel);
-       float auxlA1 = MAX(0, l - minLevel);
-       float auxlA2 = maxLevel-minLevel;
-       int lA = (int)((MIN(1,(auxlA1/auxlA2)))*255.0);
+       float auxlA1 = (float)(MAX(0, l - minLevel));
+       float auxlA2 = (float)(maxLevel-minLevel);
+       float lA = (float)((MIN(1,(auxlA1/auxlA2)))*255.0);
 
-        adjusted[lA] = adjusted[lA]+1.0;
+        adjusted[(int)lA] = adjusted[(int)lA]+1.0;
 
         auxR8 = ((auxR8*lA)/l);
         auxG8 = ((auxG8*lA)/l);
@@ -204,13 +204,6 @@ void process()
         adjusted[i] = adjusted[i]/maiorA;
     }
 
-
-
-
-    
-
-
- 
     // Dica: se você precisar de um vetor de floats para armazenar
     // a imagem convertida, etc, use este trecho
     // (não esqueça o free no final)
